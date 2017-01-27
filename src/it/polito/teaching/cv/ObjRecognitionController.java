@@ -11,11 +11,15 @@ import org.opencv.core.Core;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfByte;
 import org.opencv.core.MatOfPoint;
+import org.opencv.core.MatOfPoint2f;
+import org.opencv.core.Point;
 import org.opencv.core.Scalar;
 import org.opencv.core.Size;
-import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.core.Rect;
+//import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.highgui.*;
 import org.opencv.imgproc.Imgproc;
-import org.opencv.videoio.VideoCapture;
+//import org.opencv.videoio.VideoCapture;
 
 import javafx.application.Platform;
 import javafx.beans.property.ObjectProperty;
@@ -99,7 +103,7 @@ public class ObjRecognitionController
 		{
 			// start the video capture
 			this.capture.open(0);
-			
+			//this.capture.open("filename")
 			// is the video stream available?
 			if (this.capture.isOpened())
 			{
@@ -264,10 +268,34 @@ public class ObjRecognitionController
 			for (int idx = 0; idx >= 0; idx = (int) hierarchy.get(0, idx)[0])
 			{
 				Imgproc.drawContours(frame, contours, idx, new Scalar(250, 0, 0));
+				Rect rect = getBoundingRect(contours, idx);
+				Core.rectangle(frame, new Point(rect.x, rect.y), 
+						new Point(rect.x + rect.width, rect.y + rect.height), 
+						new Scalar(0, 0, 255, 255), 3);
 			}
 		}
 		
 		return frame;
+	
+	}
+
+	private Rect getBoundingRect(List<MatOfPoint> contours, int contourIdx) {
+		
+        // Minimum size allowed for consideration
+        MatOfPoint2f approxCurve = new MatOfPoint2f();
+        MatOfPoint2f contour2f = new MatOfPoint2f( contours.get(contourIdx).toArray() );
+        //Processing on mMOP2f1 which is in type MatOfPoint2f
+        double approxDistance = Imgproc.arcLength(contour2f, true)*0.02;
+        Imgproc.approxPolyDP(contour2f, approxCurve, approxDistance, true);
+
+        //Convert back to MatOfPoint
+        MatOfPoint points = new MatOfPoint( approxCurve.toArray() );
+        
+        // Get bounding rect of contour
+        Rect rect = Imgproc.boundingRect(points);
+	   
+	    return rect;
+	    
 	}
 	
 	/**
@@ -300,7 +328,8 @@ public class ObjRecognitionController
 		// create a temporary buffer
 		MatOfByte buffer = new MatOfByte();
 		// encode the frame in the buffer, according to the PNG format
-		Imgcodecs.imencode(".png", frame, buffer);
+		//Imgcodecs.imencode(".png", frame, buffer);
+		Highgui.imencode(".png", frame, buffer);
 		// build and return an Image created from the image encoded in the
 		// buffer
 		return new Image(new ByteArrayInputStream(buffer.toArray()));
